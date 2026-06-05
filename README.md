@@ -66,7 +66,8 @@ imu_driver_ros2/
 cd <catkin_ws>
 
 # 编译（rosdep 会自动安装依赖）
-rosdep install --from-paths src --ignore-src -r -y
+# rosdep install --from-paths src --ignore-src -r -y
+colcon build --packages-select imu_driver_interfaces
 colcon build --packages-select imu_driver_ros2
 
 # 加载环境

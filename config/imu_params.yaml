@@ -1,0 +1,22 @@
+# IMU 驱动节点默认参数配置
+# 使用方式：ros2 run imu_driver_ros2 imu_ros_publisher --ros-args --params-file <path>/imu_params.yaml
+# 或在 launch 中：parameters=[<path>/imu_params.yaml]
+
+imu_ros_publisher:
+  ros__parameters:
+    # ===== 串口参数 =====
+    port: "/dev/ttyUSB0"       # 串口设备路径
+    baud: 115200               # 波特率
+    timeout_ms: 100            # 串口读取超时（毫秒），0 表示阻塞
+
+    # ===== 发布参数 =====
+    publish_custom: false      # 是否发布自定义 ImuData 消息
+    publish_sensor_msgs: true  # 是否发布 sensor_msgs/Imu 与 MagneticField
+    frame_id: "imu_link"       # 坐标系 ID
+
+    # ===== 姿态解算参数 =====
+    enable_attitude_estimation: true  # 是否启用姿态解算
+    algorithm_type: "complementary"   # 算法类型：complementary（互补滤波）或 rk4（四阶龙格库塔）
+    axis_mode: "9"                    # 轴数模式：6（加速度计+陀螺仪）或 9（加速度计+陀螺仪+磁力计）
+    alpha_acc: 0.02                   # 加速度计融合/修正系数（0~1），越大越信任加速度计
+    alpha_mag: 0.01                   # 磁力计融合/修正系数（0~1），越大越信任磁力计

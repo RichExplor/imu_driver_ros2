@@ -85,7 +85,7 @@ private:
   double             alpha_mag_;              ///< 磁力计修正系数
   double             accel_reject_threshold_; ///< 加速度计异常检测阈值
 
-  inline static constexpr double GRAVITY = 9.80665;
+  static constexpr double GRAVITY = 9.80665;
 };
 
 } // namespace imu_algorithm

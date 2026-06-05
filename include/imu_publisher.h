@@ -21,7 +21,7 @@ public:
   void Publish(const ImuRawData& raw, const rclcpp::Time& stamp);
 
 private:
-  static void fillCovariance(std::array<double, 9>& cov, bool unknown = false);
+  void fillCovariance(std::array<double, 9>& cov, bool unknown = false);
 
   /// @brief 将原始数据转换为 SI 单位，并应用缩放系数
   void convertRawData(const ImuRawData& raw, const rclcpp::Time& stamp, geometry_msgs::msg::Vector3& accel,
@@ -52,23 +52,23 @@ private:
   rclcpp::Time last_stamp_;
 
   /// @brief 协方差矩阵常量（未知方向设 -1，其余为 0）
-  inline static constexpr double COV_UNKNOWN = -1.0;
-  inline static constexpr double COV_ZERO    = 0.0;
+  const double COV_UNKNOWN = -1.0;
+  const double COV_ZERO    = 0.0;
 
   /// @brief 转换原始数据为 SI 单位（m/s^2, rad/s, T）
-  inline static constexpr double GRAVITY = 9.80665; // 标准重力加速度
+  static constexpr double GRAVITY = 9.80665; // 标准重力加速度
 
   // 新协议原始 DATA 需乘以 1e-6 得到物理量（除温度）
-  inline static constexpr double SCALE_ACCEL        = 1e-6; // 加速度: DATA * SCALE_ACCEL -> m/s^2
-  inline static constexpr double SCALE_GYRO         = 1e-6; // 角速度: DATA * SCALE_GYRO -> deg/s
-  inline static constexpr double SCALE_MAG          = 1e-6; // 磁力归一化: DATA * SCALE_MAG -> 单位向量分量
-  inline static constexpr double SCALE_MAG_STRENGTH = 1e-3; // 磁场强度: DATA * SCALE_MAG_STRENGTH -> mGauss
-  inline static constexpr double SCALE_NOT_DIMENSIONAL = 1e-6; // 无量纲缩放因子
+  static constexpr double SCALE_ACCEL           = 1e-6; // 加速度: DATA * SCALE_ACCEL -> m/s^2
+  static constexpr double SCALE_GYRO            = 1e-6; // 角速度: DATA * SCALE_GYRO -> deg/s
+  static constexpr double SCALE_MAG             = 1e-6; // 磁力归一化: DATA * SCALE_MAG -> 单位向量分量
+  static constexpr double SCALE_MAG_STRENGTH    = 1e-3; // 磁场强度: DATA * SCALE_MAG_STRENGTH -> mGauss
+  static constexpr double SCALE_NOT_DIMENSIONAL = 1e-6; // 无量纲缩放因子
 
   // 磁场强度转 Tesla：DATA * 0.001 (mGauss) -> Tesla = DATA * 0.001 * 1e-4
-  inline static constexpr double SCALE_MAG_STRENGTH_TO_TESLA = 1e-7;
+  static constexpr double SCALE_MAG_STRENGTH_TO_TESLA = 1e-7;
 
   /// @brief 角度转换常量
-  inline static constexpr double Rad2Deg = 180.0 / M_PI;
-  inline static constexpr double Deg2Rad = M_PI / 180.0;
+  static constexpr double Rad2Deg = 180.0 / M_PI;
+  static constexpr double Deg2Rad = M_PI / 180.0;
 };

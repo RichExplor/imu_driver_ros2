@@ -6,15 +6,15 @@ ImuPublisher::ImuPublisher(rclcpp::Node* node, bool publish_custom, bool publish
       frame_id_(frame_id), estimator_ptr_(estimator), first_frame_(true), last_stamp_(node->now()) {
 
   if (publish_custom_) {
-    pub_custom_ = node->create_publisher<imu_driver_interfaces::msg::ImuData>("/a0110e/imu/data_serial", 10);
-    RCLCPP_INFO(logger_, "Publishing custom ImuData on /a0110e/imu/data_serial");
+    pub_custom_ = node->create_publisher<imu_driver_interfaces::msg::ImuData>("/A0100E/imu/data_raw", 10);
+    RCLCPP_INFO(logger_, "Publishing custom ImuData on /A0100E/imu/data_raw");
   }
 
   if (publish_sensor_msgs) {
-    pub_imu_ = node->create_publisher<sensor_msgs::msg::Imu>("/a0110e/imu/data_raw", 10);
-    pub_mag_ = node->create_publisher<sensor_msgs::msg::MagneticField>("/a0110e/imu/mag", 10);
-    RCLCPP_INFO(logger_, "Publishing sensor_msgs/Imu on /a0110e/imu/data_raw, "
-                         "sensor_msgs/MagneticField on /a0110e/imu/mag");
+    pub_imu_ = node->create_publisher<sensor_msgs::msg::Imu>("/A0100E/imu/data", 10);
+    pub_mag_ = node->create_publisher<sensor_msgs::msg::MagneticField>("/A0100E/imu/mag", 10);
+    RCLCPP_INFO(logger_, "Publishing sensor_msgs/Imu on /A0100E/imu/data, "
+                         "sensor_msgs/MagneticField on /A0100E/imu/mag");
   }
 
   if (estimator_ptr_) {

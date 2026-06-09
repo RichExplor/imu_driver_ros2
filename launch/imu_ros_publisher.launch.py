@@ -12,8 +12,8 @@ def generate_launch_description():
     # ===== 声明 launch 参数 =====
     port_arg = DeclareLaunchArgument(
         'port',
-        default_value='/dev/ttyUSB0',
-        description='Serial port device path, e.g. /dev/ttyUSB0',
+        default_value='/dev/ttyACM0',
+        description='Serial port device path, e.g. /dev/ttyACM0',
     )
     baud_arg = DeclareLaunchArgument(
         'baud',

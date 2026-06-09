@@ -5,7 +5,7 @@
 imu_ros_publisher:
   ros__parameters:
     # ===== 串口参数 =====
-    port: "/dev/ttyUSB0"       # 串口设备路径
+    port: "/dev/ttyACM0"       # 串口设备路径
     baud: 115200               # 波特率
     timeout_ms: 100            # 串口读取超时（毫秒），0 表示阻塞
 

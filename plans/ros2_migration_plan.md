@@ -326,7 +326,7 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     return LaunchDescription([
-        DeclareLaunchArgument('port', default_value='/dev/ttyUSB0'),
+        DeclareLaunchArgument('port', default_value='/dev/ttyACM0'),
         DeclareLaunchArgument('baud', default_value='115200'),
         # ... 其他参数
         Node(
@@ -348,7 +348,7 @@ def generate_launch_description():
 ```yaml
 imu_ros_publisher:
   ros__parameters:
-    port: "/dev/ttyUSB0"
+    port: "/dev/ttyACM0"
     baud: 115200
     timeout_ms: 100
     publish_custom: false

@@ -80,7 +80,7 @@ source install/setup.bash
 
 | 参数名 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `port` | string | `/dev/ttyUSB0` | 串口设备路径 |
+| `port` | string | `/dev/ttyACM0` | 串口设备路径 |
 | `baud` | int | `115200` | 波特率 |
 | `timeout_ms` | int | `100` | 串口读取超时（毫秒），0 表示阻塞 |
 | `publish_custom` | bool | `false` | 是否发布自定义 `ImuData` 消息 |
@@ -122,7 +122,7 @@ ros2 run imu_driver_ros2 imu_ros_publisher --ros-args \
 
 # 命令行指定参数
 ros2 run imu_driver_ros2 imu_ros_publisher --ros-args \
-    -p port:=/dev/ttyUSB0 \
+    -p port:=/dev/ttyACM0 \
     -p baud:=115200 \
     -p algorithm_type:=complementary \
     -p axis_mode:=9
@@ -134,9 +134,9 @@ ros2 run imu_driver_ros2 imu_ros_publisher --ros-args \
 
 | 话题名 | 消息类型 | 说明 |
 |--------|----------|------|
-| `/a0110e/imu/data_serial` | `imu_driver_interfaces/msg/ImuData` | 自定义 IMU 数据（需 `publish_custom:=true`） |
-| `/a0110e/imu/data_raw` | `sensor_msgs/msg/Imu` | 标准 IMU 消息（含姿态四元数、角速度、线加速度） |
-| `/a0110e/imu/mag` | `sensor_msgs/msg/MagneticField` | 磁场消息 |
+| `/A0100E/imu/data_raw` | `imu_driver_interfaces/msg/ImuData` | 自定义 IMU 数据（需 `publish_custom:=true`） |
+| `/A0100E/imu/data` | `sensor_msgs/msg/Imu` | 标准 IMU 消息（含姿态四元数、角速度、线加速度） |
+| `/A0100E/imu/mag` | `sensor_msgs/msg/MagneticField` | 磁场消息 |
 
 ## 二进制协议
 

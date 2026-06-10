@@ -217,7 +217,7 @@ classDiagram
         -frame_id_ : string
         -enable_attitude_estimation_ : bool
         -algorithm_type_ : string
-        -axis_mode_ : string
+        -axis_mode_ : int
         -alpha_acc_ : double
         -alpha_mag_ : double
         -total_frames_ : size_t
@@ -349,7 +349,7 @@ flowchart LR
 | `frame_id` | string | `imu_link` | `imu_link` | 坐标系 ID |
 | `enable_attitude_estimation` | bool | true | true | 是否启用姿态解算 |
 | `algorithm_type` | string | `complementary` | `complementary` | 算法类型 |
-| `axis_mode` | string | `9` | `9` | 轴数模式 |
+| `axis_mode` | int | `9` | `9` | 轴数模式 |
 | `alpha_acc` | double | 0.02 | 0.02 | 加速度计融合系数 |
 | `alpha_mag` | double | 0.01 | 0.01 | 磁力计融合系数 |
 

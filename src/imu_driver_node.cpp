@@ -19,7 +19,7 @@ void ImuDriverNode::loadParams() {
   // 姿态解算参数
   this->declare_parameter<bool>("enable_attitude_estimation", true);
   this->declare_parameter<std::string>("algorithm_type", "complementary");
-  this->declare_parameter<std::string>("axis_mode", "9");
+  this->declare_parameter<int>("axis_mode", 9);
   this->declare_parameter<double>("alpha_acc", 0.02);
   this->declare_parameter<double>("alpha_mag", 0.01);
 
@@ -34,7 +34,7 @@ void ImuDriverNode::loadParams() {
 
   enable_attitude_estimation_ = this->get_parameter("enable_attitude_estimation").as_bool();
   algorithm_type_             = this->get_parameter("algorithm_type").as_string();
-  axis_mode_                  = this->get_parameter("axis_mode").as_string();
+  axis_mode_                  = this->get_parameter("axis_mode").as_int();
   alpha_acc_                  = this->get_parameter("alpha_acc").as_double();
   alpha_mag_                  = this->get_parameter("alpha_mag").as_double();
 
@@ -47,7 +47,7 @@ void ImuDriverNode::loadParams() {
   RCLCPP_INFO(this->get_logger(), "  frame_id = %s", frame_id_.c_str());
   RCLCPP_INFO(this->get_logger(), "  enable_attitude_estimation = %s", enable_attitude_estimation_ ? "true" : "false");
   RCLCPP_INFO(this->get_logger(), "  algorithm_type = %s", algorithm_type_.c_str());
-  RCLCPP_INFO(this->get_logger(), "  axis_mode = %s", axis_mode_.c_str());
+  RCLCPP_INFO(this->get_logger(), "  axis_mode = %d", axis_mode_);
   RCLCPP_INFO(this->get_logger(), "  alpha_acc = %.6f", alpha_acc_);
   RCLCPP_INFO(this->get_logger(), "  alpha_mag = %.6f", alpha_mag_);
 }
@@ -63,7 +63,7 @@ bool ImuDriverNode::Init() {
 
   if (enable_attitude_estimation_) {
     auto algo_type = imu_algorithm::AttitudeEstimator::AlgorithmFromString(algorithm_type_);
-    auto axis_mode = imu_algorithm::AttitudeEstimator::AxisModeFromString(axis_mode_);
+    auto axis_mode = imu_algorithm::AttitudeEstimator::AxisModeFromString(std::to_string(axis_mode_));
     attitude_estimator_ptr_ =
         std::make_shared<imu_algorithm::AttitudeEstimator>(algo_type, axis_mode, alpha_acc_, alpha_mag_);
 

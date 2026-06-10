@@ -42,7 +42,7 @@ private:
   // 姿态解算参数
   bool        enable_attitude_estimation_; ///< 是否启用姿态解算
   std::string algorithm_type_;             ///< 算法类型："complementary" 或 "rk4"
-  std::string axis_mode_;                  ///< 轴数模式："6" 或 "9"
+  int         axis_mode_;                  ///< 轴数模式："6" 或 "9"
   double      alpha_acc_;                  ///< 加速度计融合系数
   double      alpha_mag_;                  ///< 磁力计融合系数
 

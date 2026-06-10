@@ -88,7 +88,7 @@ source install/setup.bash
 | `frame_id` | string | `imu_link` | 坐标系 ID |
 | `enable_attitude_estimation` | bool | `true` | 是否启用姿态解算 |
 | `algorithm_type` | string | `complementary` | 算法类型：`complementary`（互补滤波）或 `rk4`（四阶龙格库塔） |
-| `axis_mode` | string | `9` | 轴数模式：`6`（加速度计+陀螺仪）或 `9`（加速度计+陀螺仪+磁力计） |
+| `axis_mode` | int | `9` | 轴数模式：`6`（加速度计+陀螺仪）或 `9`（加速度计+陀螺仪+磁力计） |
 | `alpha_acc` | double | `0.02` | 加速度计融合/修正系数（0~1），越大越信任加速度计 |
 | `alpha_mag` | double | `0.01` | 磁力计融合/修正系数（0~1），越大越信任磁力计 |
 

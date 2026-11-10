@@ -6,8 +6,8 @@ imu_ros_publisher:
   ros__parameters:
     # ===== 串口参数 =====
     port: "/dev/ttyACM0"       # 串口设备路径
-    baud: 115200               # 波特率
-    timeout_ms: 100            # 串口读取超时（毫秒），0 表示阻塞
+    baud: 460800               # 波特率
+    timeout_ms: 10            # 串口读取超时（毫秒），0 表示阻塞
 
     # ===== 发布参数 =====
     publish_custom: false      # 是否发布自定义 ImuData 消息

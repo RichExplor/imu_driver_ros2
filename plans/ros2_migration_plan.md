@@ -342,8 +342,8 @@ flowchart LR
 | 参数名 | 类型 | 代码默认值 | YAML 默认值 | 说明 |
 |--------|------|-----------|------------|------|
 | `port` | string | `/dev/ttyACM0` | `/dev/ttyACM0` | 串口设备路径 |
-| `baud` | int | 115200 | 115200 | 波特率 |
-| `timeout_ms` | int | 100 | 100 | 串口读取超时（毫秒） |
+| `baud` | int | 460800 | 460800 | 波特率 |
+| `timeout_ms` | int | 10 | 10 | 串口读取超时（毫秒） |
 | `publish_custom` | bool | **true** | **false** | 是否发布自定义 ImuData |
 | `publish_sensor_msgs` | bool | false | true | 是否发布标准 sensor_msgs |
 | `frame_id` | string | `imu_link` | `imu_link` | 坐标系 ID |
@@ -361,7 +361,7 @@ flowchart LR
 
 ```cpp
 // 构造时注入 Logger
-SerialPort(const std::string& port, int baud, int timeout_ms = 100,
+SerialPort(const std::string& port, int baud, int timeout_ms = 10,
            const rclcpp::Logger& logger = rclcpp::get_logger("serial_port"));
 bool Open();
 void Close();
@@ -509,7 +509,7 @@ graph LR
 ros2 run imu_driver_ros2 imu_ros_publisher --ros-args --params-file config/imu_params.yaml
 
 # 方式 2：launch 文件（推荐）
-ros2 launch imu_driver_ros2 imu_ros_publisher.launch.py port:=/dev/ttyACM0 baud:=115200
+ros2 launch imu_driver_ros2 imu_ros_publisher.launch.py port:=/dev/ttyACM0 baud:=460800
 
 # 方式 3：launch 文件 + 参数文件
 ros2 launch imu_driver_ros2 imu_ros_publisher.launch.py --params-file config/imu_params.yaml
@@ -589,7 +589,7 @@ ros2 launch imu_driver_ros2 imu_ros_publisher.launch.py --params-file config/imu
 
 | 编号 | 风险 | 概率 | 影响 | 缓解措施 |
 |------|------|------|------|---------|
-| R-001 | 串口超时导致 `spin_some()` 饥饿 | 中 | 高 | `timeout_ms` 下限 100ms；考虑异步串口 + Timer 架构演进 |
+| R-001 | 串口超时导致 `spin_some()` 饥饿 | 中 | 高 | `timeout_ms` 下限 10ms；考虑异步串口 + Timer 架构演进 |
 | R-002 | 默认参数不一致（yaml vs 代码） | 高 | 低 | 统一默认值，YAML 作为唯一真源 |
 | R-003 | 话题名硬编码，多 IMU 部署冲突 | 中 | 中 | 参数化话题命名空间前缀 |
 | R-004 | `imu_driver_interfaces` 包不存在导致编译失败 | 低 | 高 | CI 中确保工作空间完整；`CMakeLists.txt` 中 `REQUIRED` 标志提前报错 |

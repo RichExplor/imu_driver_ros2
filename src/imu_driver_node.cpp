@@ -8,8 +8,8 @@ ImuDriverNode::ImuDriverNode() : Node("imu_ros_publisher"), total_frames_(0), la
 void ImuDriverNode::loadParams() {
   // 串口参数
   this->declare_parameter<std::string>("port", "/dev/ttyACM0");
-  this->declare_parameter<int>("baud", 115200);
-  this->declare_parameter<int>("timeout_ms", 100);
+  this->declare_parameter<int>("baud", 460800);
+  this->declare_parameter<int>("timeout_ms", 10);
 
   // 发布参数
   this->declare_parameter<bool>("publish_custom", true);

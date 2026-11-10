@@ -17,12 +17,12 @@ def generate_launch_description():
     )
     baud_arg = DeclareLaunchArgument(
         'baud',
-        default_value='115200',
+        default_value='460800',
         description='Serial baud rate',
     )
     timeout_ms_arg = DeclareLaunchArgument(
         'timeout_ms',
-        default_value='100',
+        default_value='10',
         description='Serial read timeout in milliseconds, 0 for blocking',
     )
     publish_custom_arg = DeclareLaunchArgument(

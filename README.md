@@ -81,8 +81,8 @@ source install/setup.bash
 | 参数名 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | `port` | string | `/dev/ttyACM0` | 串口设备路径 |
-| `baud` | int | `115200` | 波特率 |
-| `timeout_ms` | int | `100` | 串口读取超时（毫秒），0 表示阻塞 |
+| `baud` | int | `460800` | 波特率 |
+| `timeout_ms` | int | `10` | 串口读取超时（毫秒），0 表示阻塞 |
 | `publish_custom` | bool | `false` | 是否发布自定义 `ImuData` 消息 |
 | `publish_sensor_msgs` | bool | `true` | 是否发布 `sensor_msgs/Imu` 与 `MagneticField` |
 | `frame_id` | string | `imu_link` | 坐标系 ID |
@@ -123,7 +123,7 @@ ros2 run imu_driver_ros2 imu_ros_publisher --ros-args \
 # 命令行指定参数
 ros2 run imu_driver_ros2 imu_ros_publisher --ros-args \
     -p port:=/dev/ttyACM0 \
-    -p baud:=115200 \
+    -p baud:=460800 \
     -p algorithm_type:=complementary \
     -p axis_mode:=9
 ```

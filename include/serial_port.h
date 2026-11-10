@@ -8,7 +8,7 @@
 
 class SerialPort {
 public:
-  SerialPort(const std::string& port, int baud, int timeout_ms = 100,
+  SerialPort(const std::string& port, int baud, int timeout_ms = 10,
              const rclcpp::Logger& logger = rclcpp::get_logger("serial_port"));
 
   ~SerialPort();

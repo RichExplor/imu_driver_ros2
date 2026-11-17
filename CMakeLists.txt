@@ -20,17 +20,21 @@ find_package(imu_driver_interfaces REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
-# ===== 包含目录 =====
-include_directories(include ${EIGEN3_INCLUDE_DIR})
+# ===== ImpVQF AHRS SDK（预编译静态库，x86_64 Linux） =====
+set(IMPVQF_LIB "${CMAKE_CURRENT_SOURCE_DIR}/third_party/impvqf/lib/x86_64-linux-gnu/libimpvqf.a")
+if(NOT EXISTS "${IMPVQF_LIB}")
+  message(FATAL_ERROR "ImpVQF static library not found: ${IMPVQF_LIB}")
+endif()
 
-# ===== 库：算法模块（纯 C++/Eigen，无 ROS 依赖） =====
+# ===== 包含目录 =====
+include_directories(include ${EIGEN3_INCLUDE_DIR} third_party/impvqf/include)
+
+# ===== 库：算法模块（纯 C++/Eigen + ImpVQF，无 ROS 依赖） =====
 add_library(imu_algorithm STATIC
-  src/algorithm/attitude_estimator.cpp
-  src/algorithm/complementary_filter.cpp
-  src/algorithm/rk4_integration.cpp
+  src/algorithm/impvqf_estimator.cpp
 )
-target_include_directories(imu_algorithm PUBLIC include ${EIGEN3_INCLUDE_DIR})
-target_link_libraries(imu_algorithm Eigen3::Eigen)
+target_include_directories(imu_algorithm PUBLIC include ${EIGEN3_INCLUDE_DIR} third_party/impvqf/include)
+target_link_libraries(imu_algorithm PUBLIC Eigen3::Eigen "${IMPVQF_LIB}" m)
 
 # ===== 库：核心模块（依赖 ROS2） =====
 add_library(imu_driver_core STATIC
@@ -38,6 +42,7 @@ add_library(imu_driver_core STATIC
   src/imu_parser.cpp
   src/imu_publisher.cpp
   src/serial_port.cpp
+  src/register_parser.cpp
 )
 target_include_directories(imu_driver_core PUBLIC include ${EIGEN3_INCLUDE_DIR})
 ament_target_dependencies(imu_driver_core
@@ -66,6 +71,10 @@ install(TARGETS imu_ros_publisher
 )
 
 install(DIRECTORY include/
+  DESTINATION include
+)
+
+install(DIRECTORY third_party/impvqf/include/
   DESTINATION include
 )
 

@@ -69,21 +69,20 @@ size_t SerialPort::Read(uint8_t* buf, size_t max_len) {
     }
   });
 
-  // 启动异步读取
+  // 启动异步读取。读到数据后立即取消定时器，使 io_.run() 及时返回；
+  // 否则 run() 会一直等待定时器到期，把每次读取都拖满 timeout_ms。
   serial_ptr_->async_read_some(boost::asio::buffer(buf, max_len),
-                               [&bytes_read, &read_ec](const boost::system::error_code& ec, size_t n) {
+                               [&](const boost::system::error_code& ec, size_t n) {
                                  read_ec = ec;
                                  if (!ec) {
                                    bytes_read = n;
                                  }
+                                 timer.cancel();
                                });
 
-  // 运行 I/O 服务直到其中一个操作完成
+  // 运行 I/O 服务直到读取完成或定时器超时
   io_.restart();
   io_.run();
-
-  // 取消可能仍在等待的定时器
-  timer.cancel();
 
   // 处理读取错误（operation_aborted 是超时导致的，不算错误）
   if (read_ec && read_ec != boost::asio::error::operation_aborted) {
@@ -92,4 +91,17 @@ size_t SerialPort::Read(uint8_t* buf, size_t max_len) {
   }
 
   return bytes_read;
+}
+
+bool SerialPort::Write(const uint8_t* data, size_t len) {
+  if (!IsOpen())
+    return false;
+
+  boost::system::error_code ec;
+  size_t                    written = boost::asio::write(*serial_ptr_, boost::asio::buffer(data, len), ec);
+  if (ec || written != len) {
+    RCLCPP_ERROR(logger_, "Serial write error: %s", ec ? ec.message().c_str() : "incomplete write");
+    return false;
+  }
+  return true;
 }

@@ -1,5 +1,7 @@
 # IMU Driver ROS2 架构设计文档
 
+> **历史文档说明**：本文记录早期 ROS1→ROS2 迁移设计。当前实现已改为 DA901S 固定/寄存器协议 + ImpVQF SDK AHRS，互补滤波 / RK4 算法模块已移除，请以 `README.md` 和实际代码为准。
+
 ## 1. 文档元信息
 
 | 字段 | 值 |
@@ -81,9 +83,9 @@ graph TB
     end
 
     IMU_HW -->|"UART 字节流"| NODE
-    NODE -->|"/A0100E/imu/data_raw<br/>imu_driver_interfaces/ImuData"| MSG
-    NODE -->|"/A0100E/imu/data<br/>sensor_msgs/Imu"| RVIZ
-    NODE -->|"/A0100E/imu/mag<br/>sensor_msgs/MagneticField"| NAV
+    NODE -->|"/DA901S/imu/data_raw<br/>imu_driver_interfaces/ImuData"| MSG
+    NODE -->|"/DA901S/imu/data<br/>sensor_msgs/Imu"| RVIZ
+    NODE -->|"/DA901S/imu/mag<br/>sensor_msgs/MagneticField"| NAV
     NODE -->|"所有话题"| BAG
 ```
 
@@ -316,9 +318,9 @@ flowchart LR
     EULER2QUAT --> MSG_BUILD
     ID --> MSG_BUILD
 
-    MSG_BUILD --> CUSTOM["/A0100E/imu/data_raw<br/>imu_driver_interfaces/ImuData"]
-    MSG_BUILD --> IMU_MSG["/A0100E/imu/data<br/>sensor_msgs/Imu"]
-    MSG_BUILD --> MAG_MSG["/A0100E/imu/mag<br/>sensor_msgs/MagneticField"]
+    MSG_BUILD --> CUSTOM["/DA901S/imu/data_raw<br/>imu_driver_interfaces/ImuData"]
+    MSG_BUILD --> IMU_MSG["/DA901S/imu/data<br/>sensor_msgs/Imu"]
+    MSG_BUILD --> MAG_MSG["/DA901S/imu/mag<br/>sensor_msgs/MagneticField"]
 ```
 
 ---
@@ -329,11 +331,11 @@ flowchart LR
 
 | 话题名 | 消息类型 | 发布条件 | QoS 策略 |
 |--------|---------|---------|---------|
-| `/A0100E/imu/data_raw` | `imu_driver_interfaces::msg::ImuData` | `publish_custom == true` | 默认（Reliable + Volatile） |
-| `/A0100E/imu/data` | `sensor_msgs::msg::Imu` | `publish_sensor_msgs == true` | 默认（Reliable + Volatile） |
-| `/A0100E/imu/mag` | `sensor_msgs::msg::MagneticField` | `publish_sensor_msgs == true` | 默认（Reliable + Volatile） |
+| `/DA901S/imu/data_raw` | `imu_driver_interfaces::msg::ImuData` | `publish_custom == true` | 默认（Reliable + Volatile） |
+| `/DA901S/imu/data` | `sensor_msgs::msg::Imu` | `publish_sensor_msgs == true` | 默认（Reliable + Volatile） |
+| `/DA901S/imu/mag` | `sensor_msgs::msg::MagneticField` | `publish_sensor_msgs == true` | 默认（Reliable + Volatile） |
 
-> **改进项**：话题名当前硬编码在 [`imu_publisher.cpp`](../src/imu_publisher.cpp) 中，多 IMU 部署时将产生命名冲突。建议参数化话题命名空间前缀（如 `declare_parameter("topic_prefix", "A0100E")`）。
+> **改进项**：话题名当前硬编码在 [`imu_publisher.cpp`](../src/imu_publisher.cpp) 中，多 IMU 部署时将产生命名冲突。建议参数化话题命名空间前缀（如 `declare_parameter("topic_prefix", "DA901S")`）。
 >
 > **改进项**：IMU 传感器数据推荐使用 `SensorDataQoS`（BestEffort + Volatile），可降低网络开销和延迟。
 
@@ -602,7 +604,7 @@ ros2 launch imu_driver_ros2 imu_ros_publisher.launch.py --params-file config/imu
 
 - [ ] `colcon build --packages-up-to imu_driver_ros2` 零错误零警告
 - [ ] `ament_lint_auto` 全部通过
-- [ ] 连接实际 IMU 硬件，`ros2 topic echo /A0100E/imu/data` 数据正常
+- [ ] 连接实际 IMU 硬件，`ros2 topic echo /DA901S/imu/data` 数据正常
 - [ ] `ros2 param dump /imu_ros_publisher` 输出与 YAML 一致
 - [ ] 断开串口后节点优雅退出（无 segfault）
 - [ ] 算法层单元测试覆盖：互补滤波收敛性、RK4 积分精度

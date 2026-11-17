@@ -4,19 +4,27 @@
 
 imu_ros_publisher:
   ros__parameters:
-    # ===== 串口参数 =====
-    port: "/dev/ttyACM0"       # 串口设备路径
-    baud: 460800               # 波特率
-    timeout_ms: 10            # 串口读取超时（毫秒），0 表示阻塞
+    # ===== 串口参数（DA901S 默认 230400，应答模式） =====
+    port: "/dev/ttyUSB0"       # 串口设备路径
+    baud: 230400               # 波特率（DA901S 默认为 230400）
+    timeout_ms: 20             # 串口读取超时（毫秒），0 表示阻塞
+    poll_rate_hz: 200          # 主机轮询频率（设备默认应答模式，需主动查询）
 
     # ===== 发布参数 =====
+    # 注意：角速度输出单位为 °/s，磁场输出单位为 mGauss（非 ROS 标准的 rad/s、Tesla）
     publish_custom: false      # 是否发布自定义 ImuData 消息
     publish_sensor_msgs: true  # 是否发布 sensor_msgs/Imu 与 MagneticField
+    publish_temperature: true  # 是否发布 /DA901S/imu/temperature (std_msgs/Float32, °C)
+    publish_attitude: true     # 是否发布两个姿态话题：设备姿态 + SDK AHRS 姿态
+    euler_unit: "deg"          # 姿态话题中欧拉角单位："deg"（默认）或 "rad"
     frame_id: "imu_link"       # 坐标系 ID
 
-    # ===== 姿态解算参数 =====
-    enable_attitude_estimation: true  # 是否启用姿态解算
-    algorithm_type: "complementary"   # 算法类型：complementary（互补滤波）或 rk4（四阶龙格库塔）
-    axis_mode: 9                      # 轴数模式：6（加速度计+陀螺仪）或 9（加速度计+陀螺仪+磁力计）
-    alpha_acc: 0.02                   # 加速度计融合/修正系数（0~1），越大越信任加速度计
-    alpha_mag: 0.01                   # 磁力计融合/修正系数（0~1），越大越信任磁力计
+    # ===== 寄存器协议参数（设备读取姿态） =====
+    enable_device_attitude: true  # 读取设备板载姿态/温度寄存器 (0x46~0x55)
+    register_poll_divider: 10     # 每 N 次传感器轮询读取一次寄存器（200Hz/10=20Hz）
+
+    # ===== 内部 AHRS 配置（ImpVQF SDK，采样周期 = 1/poll_rate_hz） =====
+    enable_attitude_estimation: true  # 是否启用内部 SDK AHRS
+    ahrs_tau_acc: 3.0                 # 倾角滤波时间常数 (s)，SDK 默认 3.0
+    ahrs_tau_mag: 9.0                 # 磁航向修正时间常数 (s)，SDK 默认 9.0
+    ahrs_options: 15                  # SDK 选项位：1运动零偏|2静止零偏|4磁扰拒绝|8梯形输入

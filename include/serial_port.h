@@ -25,6 +25,12 @@ public:
   /// @return 实际读取的字节数，超时或错误返回 0
   size_t Read(uint8_t* buf, size_t max_len);
 
+  /// @brief 同步写入（用于发送主机查询指令）
+  /// @param data 待发送数据
+  /// @param len 发送字节数
+  /// @return 成功返回 true
+  bool Write(const uint8_t* data, size_t len);
+
 private:
   boost::asio::io_service io_;
   std::string             port_;

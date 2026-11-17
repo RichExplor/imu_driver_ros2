@@ -1,12 +1,10 @@
 #include "imu_parser.h"
 #include <algorithm>
-#include <cstdint>
-#include <cstring>
 #include <limits>
 
 const std::array<uint8_t, 2> ImuParser::HEADER_ = {ImuParser::HEADER_BYTE0, ImuParser::HEADER_BYTE1};
 
-ImuParser::ImuParser() : checksum_fails_(0), frame_count_(0) {
+ImuParser::ImuParser() : checksum_fails_(0) {
   buf_.reserve(READ_BUF_SIZE);
 }
 
@@ -15,153 +13,69 @@ void ImuParser::Feed(const uint8_t* data, size_t len) {
 }
 
 bool ImuParser::Parse(ImuRawData& out) {
-  // 需要至少 header(2) + TID(2) + LEN(1) + CK(2) = 7 字节
-  while (buf_.size() >= HEADER_SIZE + 2 + 1 + 2) {
-
-    // 搜索帧头
+  // 至少凑够一整帧再尝试解析
+  while (buf_.size() >= FRAME_SIZE) {
+    // 搜索帧头 4E 4A
     auto it = std::search(buf_.begin(), buf_.end(), HEADER_.begin(), HEADER_.end());
     if (it == buf_.end()) {
-      if (buf_.size() > HEADER_SIZE - 1) {
-        buf_.erase(buf_.begin(), buf_.end() - (HEADER_SIZE - 1));
-      }
+      // 保留最后 1 字节，可能是被截断的帧头首字节
+      buf_.clear();
       return false;
     }
 
     size_t pos = static_cast<size_t>(std::distance(buf_.begin(), it));
 
-    // 如果剩余数据不足以读取 TID+LEN，等待更多数据
-    if (buf_.size() - pos < HEADER_SIZE + 3) {
+    // 帧头后至少需要有「长度 + 命令」两个字节
+    if (buf_.size() - pos < HEADER_SIZE + 2) {
       return false;
     }
 
-    // 读取 LEN 字段（pos+2, pos+3: TID; pos+4: LEN）
-    uint8_t len = buf_[pos + HEADER_SIZE + 2];
-
-    size_t full_frame_len = HEADER_SIZE + 2 + 1 + static_cast<size_t>(len) + 2; // header + TID + LEN + MESSAGE + CK
-
-    if (buf_.size() - pos < full_frame_len) {
-      // 等待更多字节
-      return false;
-    }
-
-    // 校验和验证（从 TID 开始累加到 MESSAGE 结束，包含 LEN 字节）
-    if (!validateChecksum(pos)) {
-      if (checksum_fails_ == std::numeric_limits<size_t>::max()) {
-        checksum_fails_ = 0;
-      } else {
-        ++checksum_fails_;
-      }
-
-      // 跳过当前帧头的第一个字节，重新搜索
-      buf_.erase(buf_.begin() + pos);
+    // 长度域必须是 0x13
+    if (buf_[pos + 2] != LENGTH_BYTE) {
+      buf_.erase(buf_.begin(), buf_.begin() + pos + 1);
       continue;
     }
 
-    // 解析 MESSAGE 内的数据包
-    size_t msg_start = pos + HEADER_SIZE + 2 + 1; // header + TID + LEN
-    size_t msg_end   = msg_start + len;
-
-    // 重置输出
-    out       = ImuRawData();
-    out.valid = true;
-
-    size_t i = msg_start;
-    while (i + 2 <= msg_end) {
-      uint8_t data_id = buf_[i];
-      uint8_t pkt_len = buf_[i + 1];
-      if (i + 2 + pkt_len > msg_end) {
-        // 包长度超出，视为解析失败（但帧校验已通过，仍保留帧）
-        break;
-      }
-
-      const uint8_t* payload = &buf_[i + 2];
-
-      auto read_i32 = [&](size_t off) -> int32_t {
-        size_t   o = off;
-        uint32_t v = static_cast<uint32_t>(payload[o]) | (static_cast<uint32_t>(payload[o + 1]) << 8) |
-                     (static_cast<uint32_t>(payload[o + 2]) << 16) | (static_cast<uint32_t>(payload[o + 3]) << 24);
-        return static_cast<int32_t>(v);
-      };
-
-      auto read_i16 = [&](size_t off) -> int16_t {
-        size_t   o = off;
-        uint16_t v = static_cast<uint16_t>(payload[o]) | (static_cast<uint16_t>(payload[o + 1]) << 8);
-        return static_cast<int16_t>(v);
-      };
-
-      switch (data_id) {
-      case 0x01: // 温度（2 字节，单位 0.01 °C）
-        if (pkt_len >= 2) {
-          out.temp     = read_i16(0);
-          out.has_temp = true;
-        }
-        break;
-      case 0x10: // 加速度 (x,y,z) 每轴 4 字节，单位 1e-6 m/s^2
-        if (pkt_len >= 12) {
-          out.ax        = read_i32(0);
-          out.ay        = read_i32(4);
-          out.az        = read_i32(8);
-          out.has_accel = true;
-        }
-        break;
-      case 0x20: // 角速度 (x,y,z) 每轴 4 字节，单位 1e-6 deg/s
-        if (pkt_len >= 12) {
-          out.wx       = read_i32(0);
-          out.wy       = read_i32(4);
-          out.wz       = read_i32(8);
-          out.has_gyro = true;
-        }
-        break;
-      case 0x30: // 磁场归一化 (x,y,z) 每轴 4 字节，Value = DATA * 1e-6 (无量纲)
-        if (pkt_len >= 12) {
-          out.hx           = read_i32(0);
-          out.hy           = read_i32(4);
-          out.hz           = read_i32(8);
-          out.has_mag_norm = true;
-        }
-        break;
-      case 0x31: // 磁场强度 (x,y,z) 每轴 4 字节，Value = DATA * 0.001 mGauss
-        if (pkt_len >= 12) {
-          out.mx               = read_i32(0);
-          out.my               = read_i32(4);
-          out.mz               = read_i32(8);
-          out.has_mag_strength = true;
-        }
-        break;
-      case 0x40: // 欧拉角 (Pitch, Roll, Yaw) 每轴 4 字节，Value = DATA * 1e-6
-                 // deg
-        if (pkt_len >= 12) {
-          out.pitch     = read_i32(0);
-          out.roll      = read_i32(4);
-          out.yaw       = read_i32(8);
-          out.has_euler = true;
-        }
-        break;
-      case 0x41: // 四元数 q0..q3 每分量 4 字节，单位 1e-6
-        if (pkt_len >= 16) {
-          out.q0       = read_i32(0);
-          out.q1       = read_i32(4);
-          out.q2       = read_i32(8);
-          out.q3       = read_i32(12);
-          out.has_quat = true;
-        }
-        break;
-      default:
-        break;
-      }
-
-      i += 2 + pkt_len;
+    // 等待整帧到齐
+    if (buf_.size() - pos < FRAME_SIZE) {
+      return false;
     }
 
-    // 移除已处理的帧
-    buf_.erase(buf_.begin(), buf_.begin() + full_frame_len + pos);
+    if (!validateChecksum(pos)) {
+      if (checksum_fails_ == std::numeric_limits<size_t>::max())
+        checksum_fails_ = 0;
+      else
+        ++checksum_fails_;
 
-    // 成功帧计数（wrap to zero）
-    if (frame_count_ == std::numeric_limits<size_t>::max())
-      frame_count_ = 0;
-    else
-      ++frame_count_;
+      buf_.erase(buf_.begin(), buf_.begin() + pos + 1);
+      continue;
+    }
 
+    uint8_t cmd = buf_[pos + 3];
+    if (cmd != CMD_SENSOR) {
+      // 零偏帧（0x00）或其他帧：丢弃，不算有效数据帧
+      buf_.erase(buf_.begin(), buf_.begin() + pos + FRAME_SIZE);
+      continue;
+    }
+
+    // 解析 9 个 int16 数据字段（Ax, Ay, Az, Wx, Wy, Wz, Hx, Hy, Hz）
+    size_t data_off = pos + HEADER_SIZE + 2; // 帧头(2) + 长度(1) + 命令(1)
+    out            = ImuRawData();
+    out.valid      = true;
+    out.ax         = readI16(data_off + 0);
+    out.ay         = readI16(data_off + 2);
+    out.az         = readI16(data_off + 4);
+    out.wx         = readI16(data_off + 6);
+    out.wy         = readI16(data_off + 8);
+    out.wz         = readI16(data_off + 10);
+    out.hx         = readI16(data_off + 12);
+    out.hy         = readI16(data_off + 14);
+    out.hz         = readI16(data_off + 16);
+    out.has_accel  = true;
+    out.has_gyro   = true;
+    out.has_mag    = true;
+
+    buf_.erase(buf_.begin(), buf_.begin() + pos + FRAME_SIZE);
     return true;
   }
 
@@ -169,31 +83,18 @@ bool ImuParser::Parse(ImuRawData& out) {
 }
 
 bool ImuParser::validateChecksum(size_t pos) const {
-  // 双重累加校验：从 TID 开始累加到 MESSAGE 结束（包含 LEN 字节）
-  // CK1 = 所有累加字节的低 8 位之和的低 8 位
-  // CK2 = 所有累加字节的高 8 位之和的低 8 位（即 CK1 累加过程中的进位累加）
-  size_t  tid_pos = pos + HEADER_SIZE;
-  uint8_t len     = buf_[pos + HEADER_SIZE + 2];
-  size_t  msg_end = pos + HEADER_SIZE + 2 + 1 + static_cast<size_t>(len); // first byte after MESSAGE
-
-  uint8_t ck1 = 0, ck2 = 0;
-  for (size_t i = tid_pos; i < msg_end; ++i) {
-    ck1 += buf_[i];
-    ck2 += ck1;
+  // SUM = (0x4E + 0x4A + 0x13 + 0x01 + ... + HzL + HzH) & 0xFFFF
+  // 校验和覆盖帧头到数据域结束（共 22 字节），SUM_L 在低地址、SUM_H 在高地址
+  uint32_t sum = 0;
+  for (size_t i = pos; i < pos + FRAME_SIZE - 2; ++i) {
+    sum += buf_[i];
   }
 
-  // 校验码 CK1, CK2 紧跟在 MESSAGE 之后（小端：CK1 在低地址，CK2 在高地址）
-  uint8_t expected_ck1 = buf_[msg_end];
-  uint8_t expected_ck2 = buf_[msg_end + 1];
-  return (ck1 == expected_ck1) && (ck2 == expected_ck2);
+  uint8_t expected_l = static_cast<uint8_t>(sum & 0xFF);
+  uint8_t expected_h = static_cast<uint8_t>((sum >> 8) & 0xFF);
+  return buf_[pos + FRAME_SIZE - 2] == expected_l && buf_[pos + FRAME_SIZE - 1] == expected_h;
 }
 
 int16_t ImuParser::readI16(size_t offset) const {
   return static_cast<int16_t>(static_cast<uint16_t>(buf_[offset]) | (static_cast<uint16_t>(buf_[offset + 1]) << 8));
-}
-
-int32_t ImuParser::readI32(size_t offset) const {
-  return static_cast<int32_t>(static_cast<uint32_t>(buf_[offset]) | (static_cast<uint32_t>(buf_[offset + 1]) << 8) |
-                              (static_cast<uint32_t>(buf_[offset + 2]) << 16) |
-                              (static_cast<uint32_t>(buf_[offset + 3]) << 24));
 }

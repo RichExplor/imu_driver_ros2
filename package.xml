@@ -3,7 +3,7 @@
 <package format="3">
   <name>imu_driver_ros2</name>
   <version>0.1.0</version>
-  <description>IMU driver node for ROS2, supporting serial communication, binary protocol parsing, and attitude estimation (complementary filter / RK4)</description>
+  <description>IMU driver node for ROS2, supporting serial communication, DA901S fixed/register protocols, and ImpVQF SDK based attitude estimation</description>
   <maintainer email="1637850405@qq.com">guofeng</maintainer>
   <license>Apache-2.0</license>
 

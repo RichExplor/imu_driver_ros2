@@ -2,10 +2,10 @@ rosbag2_bagfile_information:
   version: 9
   storage_identifier: mcap
   duration:
-    nanoseconds: 48476129500
+    nanoseconds: 147278185115
   starting_time:
-    nanoseconds_since_epoch: 1794905222642213121
-  message_count: 25698
+    nanoseconds_since_epoch: 1794999505958030290
+  message_count: 43833
   topics_with_message_count:
     - topic_metadata:
         name: /DA901S/imu/mag
@@ -28,7 +28,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_e80f32f56a20486c9923008fc1a1db07bbb273cbbf6a5b3bfa00835ee00e4dff
-      message_count: 8566
+      message_count: 14611
     - topic_metadata:
         name: /DA901S/imu/attitude
         type: imu_driver_interfaces/msg/ImuAttitude
@@ -50,7 +50,7 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_e951355b3cb064179b844bf0a947a335f74e03c3181a86678defbcda241a4055
-      message_count: 8566
+      message_count: 14611
     - topic_metadata:
         name: /DA901S/imu/data
         type: sensor_msgs/msg/Imu
@@ -72,17 +72,17 @@ rosbag2_bagfile_information:
               nsec: 854775807
             avoid_ros_namespace_conventions: false
         type_description_hash: RIHS01_7d9a00ff131080897a5ec7e26e315954b8eae3353c3f995c55faf71574000b5b
-      message_count: 8566
+      message_count: 14611
   compression_format: ""
   compression_mode: ""
   relative_file_paths:
-    - T1_Static_0.mcap
+    - T4_dynamic_mag_0.mcap
   files:
-    - path: T1_Static_0.mcap
+    - path: T4_dynamic_mag_0.mcap
       starting_time:
-        nanoseconds_since_epoch: 1794905222642213121
+        nanoseconds_since_epoch: 1794999505958030290
       duration:
-        nanoseconds: 48476129500
-      message_count: 25698
+        nanoseconds: 147278185115
+      message_count: 43833
   custom_data: ~
   ros_distro: jazzy

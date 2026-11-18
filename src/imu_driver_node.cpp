@@ -1,4 +1,5 @@
 #include "imu_driver_node.h"
+#include <cmath>
 #include <chrono>
 #include <limits>
 #include <rclcpp/rclcpp.hpp>
@@ -20,7 +21,7 @@ void ImuDriverNode::loadParams() {
   this->declare_parameter<std::string>("port", "/dev/ttyUSB0");
   this->declare_parameter<int>("baud", 230400);
   this->declare_parameter<int>("timeout_ms", 20);
-  this->declare_parameter<int>("poll_rate_hz", 200);
+  this->declare_parameter<int>("poll_rate_hz", 100);
 
   // 发布参数
   this->declare_parameter<bool>("publish_custom", false);
@@ -39,6 +40,8 @@ void ImuDriverNode::loadParams() {
   this->declare_parameter<double>("ahrs_tau_acc", 3.0);
   this->declare_parameter<double>("ahrs_tau_mag", 9.0);
   this->declare_parameter<int>("ahrs_options", 15);
+  // SDK 要求配置的采样周期与实际一致；默认 0 表示启动后按实测帧率自动标定
+  this->declare_parameter<double>("ahrs_sample_rate_hz", 0.0);
 
   // 读取参数
   port_         = this->get_parameter("port").as_string();
@@ -46,7 +49,7 @@ void ImuDriverNode::loadParams() {
   timeout_ms_   = this->get_parameter("timeout_ms").as_int();
   poll_rate_hz_ = this->get_parameter("poll_rate_hz").as_int();
   if (poll_rate_hz_ <= 0)
-    poll_rate_hz_ = 200;
+    poll_rate_hz_ = 100;
 
   publish_custom_      = this->get_parameter("publish_custom").as_bool();
   publish_sensor_msgs_ = this->get_parameter("publish_sensor_msgs").as_bool();
@@ -63,7 +66,8 @@ void ImuDriverNode::loadParams() {
   enable_attitude_estimation_ = this->get_parameter("enable_attitude_estimation").as_bool();
   ahrs_tau_acc_               = this->get_parameter("ahrs_tau_acc").as_double();
   ahrs_tau_mag_               = this->get_parameter("ahrs_tau_mag").as_double();
-  ahrs_options_               = static_cast<uint32_t>(this->get_parameter("ahrs_options").as_int());
+  ahrs_options_        = static_cast<uint32_t>(this->get_parameter("ahrs_options").as_int());
+  ahrs_sample_rate_hz_ = this->get_parameter("ahrs_sample_rate_hz").as_double();
 
   RCLCPP_INFO(this->get_logger(), "Parameters loaded:");
   RCLCPP_INFO(this->get_logger(), "  port = %s", port_.c_str());
@@ -81,6 +85,8 @@ void ImuDriverNode::loadParams() {
   RCLCPP_INFO(this->get_logger(), "  enable_attitude_estimation = %s", enable_attitude_estimation_ ? "true" : "false");
   RCLCPP_INFO(this->get_logger(), "  ahrs_tau_acc = %.3f, ahrs_tau_mag = %.3f", ahrs_tau_acc_, ahrs_tau_mag_);
   RCLCPP_INFO(this->get_logger(), "  ahrs_options = %u", ahrs_options_);
+  RCLCPP_INFO(this->get_logger(), "  ahrs_sample_rate_hz = %.2f%s", ahrs_sample_rate_hz_,
+              ahrs_sample_rate_hz_ > 0 ? "" : " (auto: measure actual frame rate)");
 }
 
 bool ImuDriverNode::Init() {
@@ -95,7 +101,8 @@ bool ImuDriverNode::Init() {
 
   if (enable_attitude_estimation_) {
     imu_algorithm::ImpvqfEstimator::Config cfg;
-    cfg.sample_rate_hz = static_cast<double>(poll_rate_hz_);
+    // 采样率：显式配置优先；否则先用查询频率初始化，启动后按实测帧率自动标定
+    cfg.sample_rate_hz = ahrs_sample_rate_hz_ > 0 ? ahrs_sample_rate_hz_ : static_cast<double>(poll_rate_hz_);
     cfg.tau_acc        = ahrs_tau_acc_;
     cfg.tau_mag        = ahrs_tau_mag_;
     cfg.options        = ahrs_options_;
@@ -130,6 +137,14 @@ void ImuDriverNode::Run() {
 
   size_t        poll_counter = 0;
   RegisterFrame reg_frame;
+
+  // AHRS 采样率自动标定：SDK 要求配置周期与实际一致，而实际帧率受设备应答与
+  // 寄存器查询影响，达不到 poll_rate_hz。启动后实测约 3 秒，偏差 >5% 则重新初始化。
+  bool   ahrs_rate_calibrating = ahrs_ptr_ != nullptr && ahrs_sample_rate_hz_ <= 0;
+  bool   ahrs_rate_calib_done  = false;
+  double ahrs_rate_in_use      = ahrs_sample_rate_hz_ > 0 ? ahrs_sample_rate_hz_ : static_cast<double>(poll_rate_hz_);
+  size_t cal_frames            = 0;
+  auto   cal_start             = std::chrono::steady_clock::now();
 
   while (rclcpp::ok()) {
     if (!serial_ptr_->Write(ImuParser::QUERY_FRAME.data(), ImuParser::QUERY_FRAME.size())) {
@@ -215,6 +230,36 @@ void ImuDriverNode::Run() {
         ++total_frames_;
 
       publisher_ptr_->Publish(raw, this->now());
+
+      // 按实际帧率标定 AHRS 采样周期（只做一次）
+      if (ahrs_rate_calibrating && !ahrs_rate_calib_done) {
+        if (cal_frames == 0)
+          cal_start = std::chrono::steady_clock::now();
+        ++cal_frames;
+        const auto elapsed = std::chrono::steady_clock::now() - cal_start;
+        if (cal_frames >= 100 && elapsed >= std::chrono::seconds(3)) {
+          ahrs_rate_calib_done = true;
+          const double actual_hz = (cal_frames - 1) / std::chrono::duration<double>(elapsed).count();
+          if (std::isfinite(actual_hz) && actual_hz >= 10.0 &&
+              std::abs(actual_hz - ahrs_rate_in_use) > 0.05 * ahrs_rate_in_use) {
+            imu_algorithm::ImpvqfEstimator::Config cfg;
+            cfg.sample_rate_hz = actual_hz;
+            cfg.tau_acc        = ahrs_tau_acc_;
+            cfg.tau_mag        = ahrs_tau_mag_;
+            cfg.options        = ahrs_options_;
+            if (ahrs_ptr_->Init(cfg)) {
+              RCLCPP_INFO(this->get_logger(), "AHRS sample rate calibrated: %.1f -> %.2f Hz (actual frame rate)",
+                          ahrs_rate_in_use, actual_hz);
+              ahrs_rate_in_use = actual_hz;
+            } else {
+              RCLCPP_WARN(this->get_logger(), "AHRS recalibration failed: status=%d, keep %.1f Hz",
+                          ahrs_ptr_->LastStatus(), ahrs_rate_in_use);
+            }
+          } else {
+            RCLCPP_INFO(this->get_logger(), "AHRS sample rate confirmed: %.2f Hz", actual_hz);
+          }
+        }
+      }
     }
 
     // 定期发布诊断信息

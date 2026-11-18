@@ -58,6 +58,7 @@ private:
   double   ahrs_tau_acc_;               ///< 倾角滤波时间常数 (s)
   double   ahrs_tau_mag_;               ///< 磁航向修正时间常数 (s)
   uint32_t ahrs_options_;               ///< SDK 选项位掩码
+  double   ahrs_sample_rate_hz_;        ///< SDK 采样率；0 = 启动后按实测帧率自动标定
 
   // 诊断统计
   size_t       total_frames_;

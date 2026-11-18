@@ -8,7 +8,7 @@ imu_ros_publisher:
     port: "/dev/ttyUSB0"       # 串口设备路径
     baud: 230400               # 波特率（DA901S 默认为 230400）
     timeout_ms: 20             # 串口读取超时（毫秒），0 表示阻塞
-    poll_rate_hz: 200          # 主机轮询频率（设备默认应答模式，需主动查询）
+    poll_rate_hz: 100          # 主机轮询频率（设备默认应答模式，需主动查询）
 
     # ===== 发布参数 =====
     # 注意：角速度输出单位为 °/s，磁场输出单位为 mGauss（非 ROS 标准的 rad/s、Tesla）
@@ -23,8 +23,9 @@ imu_ros_publisher:
     enable_device_attitude: true  # 读取设备板载姿态/温度寄存器 (0x46~0x55)
     register_poll_divider: 10     # 每 N 次传感器轮询读取一次寄存器（200Hz/10=20Hz）
 
-    # ===== 内部 AHRS 配置（ImpVQF SDK，采样周期 = 1/poll_rate_hz） =====
+    # ===== 内部 AHRS 配置（ImpVQF SDK） =====
     enable_attitude_estimation: true  # 是否启用内部 SDK AHRS
     ahrs_tau_acc: 3.0                 # 倾角滤波时间常数 (s)，SDK 默认 3.0
     ahrs_tau_mag: 9.0                 # 磁航向修正时间常数 (s)，SDK 默认 9.0
     ahrs_options: 15                  # SDK 选项位：1运动零偏|2静止零偏|4磁扰拒绝|8梯形输入
+    ahrs_sample_rate_hz: 0.0          # SDK 采样率：0 = 启动后按实测帧率自动标定；>0 为固定值

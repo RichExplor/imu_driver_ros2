@@ -27,7 +27,7 @@ def generate_launch_description():
     )
     poll_rate_hz_arg = DeclareLaunchArgument(
         'poll_rate_hz',
-        default_value='200',
+        default_value='100',
         description='Host polling rate in Hz (DA901S defaults to request-response mode)',
     )
     publish_custom_arg = DeclareLaunchArgument(
@@ -90,6 +90,11 @@ def generate_launch_description():
         default_value='15',
         description='ImpVQF options bitmask: 1 motion bias | 2 rest bias | 4 mag rejection | 8 trapezoid',
     )
+    ahrs_sample_rate_arg = DeclareLaunchArgument(
+        'ahrs_sample_rate_hz',
+        default_value='0.0',
+        description='ImpVQF sample rate in Hz; 0 = auto-calibrate from measured frame rate at startup',
+    )
 
     # ===== IMU 驱动节点 =====
     imu_driver_node = Node(
@@ -114,6 +119,7 @@ def generate_launch_description():
             'ahrs_tau_acc': LaunchConfiguration('ahrs_tau_acc'),
             'ahrs_tau_mag': LaunchConfiguration('ahrs_tau_mag'),
             'ahrs_options': LaunchConfiguration('ahrs_options'),
+            'ahrs_sample_rate_hz': LaunchConfiguration('ahrs_sample_rate_hz'),
         }],
     )
 
@@ -135,6 +141,7 @@ def generate_launch_description():
         ahrs_tau_acc_arg,
         ahrs_tau_mag_arg,
         ahrs_options_arg,
+        ahrs_sample_rate_arg,
         # 节点
         imu_driver_node,
     ])

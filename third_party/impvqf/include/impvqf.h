@@ -1,3 +1,4 @@
+/* ImpVQF public C ABI, version 4. See the SDK README.md for the complete contract. */
 #ifndef IMPVQF_H
 #define IMPVQF_H
 
@@ -8,8 +9,8 @@
 extern "C" {
 #endif
 
-#define IMPVQF_ABI_VERSION UINT32_C(2)
-#define IMPVQF_VERSION "0.2.0-float"
+#define IMPVQF_ABI_VERSION UINT32_C(4)
+#define IMPVQF_VERSION "0.3.4-float"
 #define IMPVQF_CONTEXT_BYTES 1024
 typedef float ImpVqfReal;
 #define IMPVQF_OK INT32_C(0)
@@ -30,7 +31,10 @@ typedef float ImpVqfReal;
 #define IMPVQF_MAG_REFERENCE_READY UINT32_C(4)
 #define IMPVQF_MAG_STARTUP_COMPLETE UINT32_C(8)
 #define IMPVQF_RECOVERY_ACTIVE UINT32_C(16)
+#define IMPVQF_REST_REALIGN_ACTIVE UINT32_C(32)
 
+/* Caller-owned opaque storage. Initialize before use; never inspect/persist its bytes.
+ * The implementation uses memcpy, so there is no private-struct aliasing requirement. */
 typedef struct {
     unsigned char opaque[IMPVQF_CONTEXT_BYTES];
 } ImpVqfContext;
@@ -72,8 +76,10 @@ typedef struct {
     ImpVqfReal recovery_tau;
     ImpVqfReal recovery_max_rate_dps;
     ImpVqfReal recovery_stop_error_deg;
+    ImpVqfReal rest_mag_tau_sec; /* 0 disables normal clean-rest magnetic correction */
+    ImpVqfReal rest_mag_max_rate_dps;
     ImpVqfReal mag_hard_iron[3];
-    ImpVqfReal mag_soft_iron[9];
+    ImpVqfReal mag_soft_iron[9]; /* row-major; acts in the input body axes */
 } ImpVqfConfig;
 
 typedef struct {
@@ -81,8 +87,8 @@ typedef struct {
     uint32_t abi_version;
     uint32_t flags;
     uint32_t reserved;
-    ImpVqfReal quat6d[4];
-    ImpVqfReal quat9d[4];
+    ImpVqfReal quat6d[4]; /* normalized Hamilton wxyz, body -> earth */
+    ImpVqfReal quat9d[4]; /* ENU magnetic reference; preserved across missing mag */
     ImpVqfReal bias_rad_s[3];
     ImpVqfReal delta_rad;
     ImpVqfReal mag_ref_norm;
@@ -97,14 +103,15 @@ typedef struct {
 
 const char *impvqf_version(void);
 size_t impvqf_context_size(void);
-
+/* Pass sizeof(ImpVqfConfig/Output). Size/version mismatch never writes past the buffer. */
 int32_t impvqf_config_default(ImpVqfConfig *config, size_t config_size);
 int32_t impvqf_init(ImpVqfContext *context, const ImpVqfConfig *config);
 int32_t impvqf_reset(ImpVqfContext *context);
-
+/* SI input in a common right-handed body frame. mag == NULL skips magnetic update.
+ * Synchronous update validates ALL inputs before changing state. No variable dt. */
 int32_t impvqf_update(ImpVqfContext *context, const ImpVqfReal gyr[3],
                      const ImpVqfReal acc[3], const ImpVqfReal mag[3]);
-
+/* Fixed multirate input: feed each NEW sample once; gyr, then acc, then mag at ties. */
 int32_t impvqf_update_gyr(ImpVqfContext *context, const ImpVqfReal gyr[3]);
 int32_t impvqf_update_acc(ImpVqfContext *context, const ImpVqfReal acc[3]);
 int32_t impvqf_update_mag(ImpVqfContext *context, const ImpVqfReal mag[3]);

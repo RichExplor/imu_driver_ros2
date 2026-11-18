@@ -8,7 +8,7 @@ ROS2 IMU 驱动节点，适配汉威 DA901S 高性能姿态测量单元，通过
 - **DA901S 固定协议解析**：帧头 `0x4E 0x4A`，16 位累加校验和，主机查询帧 `FF AA 27 34 00`
 - **寄存器协议读取**：读取 `0x46~0x55` 一次性获得设备板载欧拉角、四元数与温度
 - **双姿态话题**：`/DA901S/imu/attitude` 为设备读取的姿态；`/DA901S/imu/attitude_ahrs` 为内部 SDK AHRS 姿态
-- **内部 AHRS**：ImpVQF SDK（`third_party/impvqf`，x86_64 预编译静态库，ABI v2 / float），输出 quat9d；配置参数见下表
+- **内部 AHRS**：ImpVQF SDK（`third_party/impvqf`，x86_64 预编译静态库，`0.3.4-float` / ABI v4），输出 quat9d；配置参数见下表
 - **发布单位**：加速度 m/s²、角速度 **°/s**、磁场 **mGauss**、温度 °C（角速度/磁场非 ROS 标准 SI 单位）
 - **多消息发布**：自定义 `ImuData`、标准 `sensor_msgs/Imu` + `MagneticField`、温度 `std_msgs/Float32`，以及两个 `ImuAttitude` 话题
 - **ROS2 参数机制**：所有参数均可通过 YAML 文件或命令行动态配置
@@ -82,7 +82,7 @@ source install/setup.bash
 | `port` | string | `/dev/ttyUSB0` | 串口设备路径 |
 | `baud` | int | `230400` | 波特率（DA901S 默认值） |
 | `timeout_ms` | int | `20` | 串口读取超时（毫秒），0 表示阻塞 |
-| `poll_rate_hz` | int | `200` | 主机轮询频率（设备默认应答模式，需主动查询） |
+| `poll_rate_hz` | int | `100` | 主机轮询频率（设备默认应答模式，需主动查询） |
 | `publish_custom` | bool | `false` | 是否发布自定义 `ImuData` 消息 |
 | `publish_sensor_msgs` | bool | `true` | 是否发布 `sensor_msgs/Imu` 与 `MagneticField` |
 | `publish_temperature` | bool | `true` | 是否发布 `/DA901S/imu/temperature`（°C） |
@@ -95,6 +95,7 @@ source install/setup.bash
 | `ahrs_tau_acc` | double | `3.0` | 倾角滤波时间常数 (s)，SDK 默认 3.0 |
 | `ahrs_tau_mag` | double | `9.0` | 磁航向修正时间常数 (s)，SDK 默认 9.0 |
 | `ahrs_options` | int | `15` | SDK 选项位：1运动零偏\|2静止零偏\|4磁扰拒绝\|8梯形输入 |
+| `ahrs_sample_rate_hz` | double | `0.0` | SDK 采样率：0 = 启动后按实测帧率自动标定（SDK 要求周期与实际一致）；>0 为固定值 |
 
 ## 使用方法
 
@@ -110,7 +111,7 @@ ros2 launch imu_driver_ros2 imu_ros_publisher.launch.py
 ros2 launch imu_driver_ros2 imu_ros_publisher.launch.py \
     port:=/dev/ttyUSB0 \
     baud:=230400 \
-    poll_rate_hz:=200 \
+    poll_rate_hz:=100 \
     ahrs_tau_acc:=3.0 \
     ahrs_tau_mag:=9.0
 ```
@@ -129,7 +130,7 @@ ros2 run imu_driver_ros2 imu_ros_publisher --ros-args \
 ros2 run imu_driver_ros2 imu_ros_publisher --ros-args \
     -p port:=/dev/ttyUSB0 \
     -p baud:=230400 \
-    -p poll_rate_hz:=200 \
+    -p poll_rate_hz:=100 \
     -p ahrs_options:=15
 ```
 
